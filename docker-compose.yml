@@ -2,16 +2,18 @@ services:
   master:
     build: .
     container_name: pdc-master
+    hostname: pdc-master  # <-- ADD THIS LINE
     volumes:
       - ./hostfile:/app/hostfile
     command: >
-      sh -c "/usr/sbin/sshd & sleep 5 && mpirun -np 4 --hostfile /app/hostfile --allow-run-as-root /app/mpi_task"
+      sh -c "/usr/sbin/sshd & sleep 5 && mpirun -np 5 --hostfile /app/hostfile --allow-run-as-root /app/task1"
     networks:
       - pdcn
 
   worker1:
     build: .
     container_name: pdc-worker1
+    hostname: pdc-worker1  # <-- ADD THIS LINE
     command: /usr/sbin/sshd -D
     networks:
       - pdcn
@@ -19,6 +21,7 @@ services:
   worker2:
     build: .
     container_name: pdc-worker2
+    hostname: pdc-worker2  # <-- ADD THIS LINE
     command: /usr/sbin/sshd -D
     networks:
       - pdcn
@@ -26,6 +29,15 @@ services:
   worker3:
     build: .
     container_name: pdc-worker3
+    hostname: pdc-worker3  # <-- ADD THIS LINE
+    command: /usr/sbin/sshd -D
+    networks:
+      - pdcn
+
+  worker4:
+    build: .
+    container_name: pdc-worker4
+    hostname: pdc-worker4  # <-- ADD THIS LINE
     command: /usr/sbin/sshd -D
     networks:
       - pdcn
