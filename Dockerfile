@@ -16,6 +16,8 @@ RUN chmod 600 /root/.ssh/authorized_keys
 RUN echo "Host *\n\tStrictHostKeyChecking no" >> /root/.ssh/config
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
+# ... (all previous lines are the same) ...
+
 WORKDIR /app
 
 COPY . /app/
@@ -23,3 +25,4 @@ COPY . /app/
 # Compile ALL the necessary tasks during the build
 RUN mpic++ -O2 -std=c++17 -o mpi_task task.cpp
 RUN mpic++ -O2 -std=c++17 -o task1 task1.cpp
+RUN mpic++ -O2 -std=c++17 -o task2 task2.cpp # <-- ADD THIS LINE

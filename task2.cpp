@@ -3,8 +3,7 @@
 #include <mpi.h>
 #include <unistd.h> // Required for gethostname() and getpid()
 #include <cstdlib>  // Required for getenv()
-
-// Roll numbers: 22i-1601, 22i-1554, 22i-1689
+#include <string>   // Required for std::string
 
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
@@ -15,27 +14,28 @@ int main(int argc, char** argv) {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    // This will now get the unique Container ID, e.g., "039f5fe4970d"
     char container_id[256];
     gethostname(container_id, sizeof(container_id));
-
-    // This gets the friendly name from the environment variable we set
     const char* friendly_name = getenv("FRIENDLY_NAME");
-    if (friendly_name == nullptr) {
-        friendly_name = "unknown"; // A fallback in case the variable isn't set
-    }
-
+    if (friendly_name == nullptr) { friendly_name = "unknown"; }
     pid_t pid = getpid();
     int num_workers = world_size - 1;
 
     if (world_rank == 0) {
         // --- MASTER PROCESS ---
-        int data[] = {1, 2, 3, 4};
-        // ... (error checking code is the same) ...
 
-        // Updated print statement with all information
+        // Q2. Master has an array {2,3,4,5}.
+        int data[] = {2, 3, 4, 5};
+        int data_count = sizeof(data) / sizeof(int);
+
+        if (data_count != num_workers) {
+            std::cerr << "Error: This task requires exactly 4 workers (" << num_workers 
+                      << " found). Please run with -np 5." << std::endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+        }
+
         std::cout << "Master on " << friendly_name << " (ID: " << container_id << ", PID: " << pid 
-                  << ", rank: 0): sending numbers 1,2,3,4 to workers..." << std::endl;
+                  << ", rank: 0): distributing array {2,3,4,5} to workers." << std::endl;
 
         for (int i = 0; i < num_workers; ++i) {
             MPI_Send(&data[i], 1, MPI_INT, i + 1, 0, MPI_COMM_WORLD);
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
         }
 
         std::cout << "Master on " << friendly_name << " (ID: " << container_id << ", PID: " << pid 
-                  << ", rank: 0): collected results {";
+                  << ", rank: 0): gathered results {";
         for (int i = 0; i < results.size(); ++i) {
             std::cout << results[i] << (i == results.size() - 1 ? "" : ",");
         }
@@ -60,12 +60,27 @@ int main(int argc, char** argv) {
         int received_number;
         MPI_Recv(&received_number, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        int computed_result = received_number * 10;
-        
-        // Updated print statement with all information
+        int computed_result = 0;
+        std::string operation_string;
+
+        // Q2. Different workers perform different computations based on their rank.
+        if (world_rank == 1) {
+            computed_result = received_number * received_number;
+            operation_string = "squared ->";
+        } else if (world_rank == 2) {
+            computed_result = received_number * received_number * received_number;
+            operation_string = "cubed ->";
+        } else if (world_rank == 3) {
+            computed_result = received_number * 2;
+            operation_string = "doubled ->";
+        } else if (world_rank == 4) {
+            computed_result = received_number - 1;
+            operation_string = "subtracted 1 ->";
+        }
+
         std::cout << "Worker on " << friendly_name << " (ID: " << container_id << ", PID: " << pid 
                   << ", rank: " << world_rank << "): received " << received_number 
-                  << ", computed " << computed_result << std::endl;
+                  << ", " << operation_string << " " << computed_result << std::endl;
         
         MPI_Send(&computed_result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
     }

@@ -2,14 +2,13 @@ services:
   master:
     build: .
     container_name: pdc-master
-    # REMOVED the 'hostname:' line
     volumes:
       - ./hostfile:/app/hostfile
-    # ADDED the 'environment:' block
     environment:
       - FRIENDLY_NAME=pdc-master
+    # This line automatically reads from the .env file
     command: >
-      sh -c "/usr/sbin/sshd & sleep 5 && mpirun -np 5 --hostfile /app/hostfile --allow-run-as-root /app/task1"
+      sh -c "/usr/sbin/sshd & sleep 5 && mpirun -np 5 --hostfile /app/hostfile --allow-run-as-root /app/${TASK_TO_RUN:-task1}"
     networks:
       - pdcn
 
