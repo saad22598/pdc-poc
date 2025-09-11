@@ -5,6 +5,9 @@
 #include <cstdlib>  // Required for getenv()
 #include <string>   // Required for std::string
 
+// Roll numbers: 22i-1601, 22i-1554, 22i-1689
+// Question 2
+
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
 

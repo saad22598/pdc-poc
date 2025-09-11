@@ -5,9 +5,10 @@
 #include <cstdlib>  // Required for getenv()
 
 // Roll numbers: 22i-1601, 22i-1554, 22i-1689
+// Question 1
 
 int main(int argc, char** argv) {
-    MPI_Init(&argc, &argv);
+    MPI_Init(&argc, &argv)
 
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
