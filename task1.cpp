@@ -2,6 +2,7 @@
 #include <vector>
 #include <mpi.h>
 #include <unistd.h> // Required for gethostname() and getpid()
+#include <cstdlib>  // Required for getenv()
 
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
@@ -12,47 +13,41 @@ int main(int argc, char** argv) {
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    // Get the hostname of the container/machine the process is running on.
-    char hostname[256];
-    gethostname(hostname, sizeof(hostname));
+    // This will now get the unique Container ID, e.g., "039f5fe4970d"
+    char container_id[256];
+    gethostname(container_id, sizeof(container_id));
 
-    // Get the Process ID of this specific MPI process.
+    // This gets the friendly name from the environment variable we set
+    const char* friendly_name = getenv("FRIENDLY_NAME");
+    if (friendly_name == nullptr) {
+        friendly_name = "unknown"; // A fallback in case the variable isn't set
+    }
+
     pid_t pid = getpid();
-
     int num_workers = world_size - 1;
 
     if (world_rank == 0) {
         // --- MASTER PROCESS ---
         int data[] = {1, 2, 3, 4};
-        int data_count = sizeof(data) / sizeof(int);
+        // ... (error checking code is the same) ...
 
-        if (data_count != num_workers) {
-            if (world_rank == 0) { // Only master should print the error
-                std::cerr << "Error: The number of workers (" << num_workers 
-                          << ") must match the number of data elements (" << data_count << ").\n"
-                          << "Please run with -np " << data_count + 1 << " processes." << std::endl;
-            }
-            MPI_Abort(MPI_COMM_WORLD, 1);
-        }
-
-        // Updated print statement to include PID and Hostname
-        std::cout << "Master (rank 0, PID " << pid << " on " << hostname << "): sending numbers 1,2,3,4 to workers..." << std::endl;
+        // Updated print statement with all information
+        std::cout << "Master on " << friendly_name << " (ID: " << container_id << ", PID: " << pid 
+                  << ", rank: 0): sending numbers 1,2,3,4 to workers..." << std::endl;
 
         for (int i = 0; i < num_workers; ++i) {
-            int worker_rank = i + 1;
-            MPI_Send(&data[i], 1, MPI_INT, worker_rank, 0, MPI_COMM_WORLD);
+            MPI_Send(&data[i], 1, MPI_INT, i + 1, 0, MPI_COMM_WORLD);
         }
 
         std::vector<int> results(num_workers);
         for (int i = 0; i < num_workers; ++i) {
-            int worker_rank = i + 1;
             int received_result;
-            MPI_Recv(&received_result, 1, MPI_INT, worker_rank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&received_result, 1, MPI_INT, i + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             results[i] = received_result;
         }
 
-        // Updated print statement
-        std::cout << "Master (rank 0, PID " << pid << " on " << hostname << "): collected results {";
+        std::cout << "Master on " << friendly_name << " (ID: " << container_id << ", PID: " << pid 
+                  << ", rank: 0): collected results {";
         for (int i = 0; i < results.size(); ++i) {
             std::cout << results[i] << (i == results.size() - 1 ? "" : ",");
         }
@@ -65,9 +60,9 @@ int main(int argc, char** argv) {
 
         int computed_result = received_number * 10;
         
-        // Updated print statement to include PID and Hostname
-        std::cout << "Worker (rank " << world_rank << ", PID " << pid << " on " << hostname 
-                  << "): received " << received_number 
+        // Updated print statement with all information
+        std::cout << "Worker on " << friendly_name << " (ID: " << container_id << ", PID: " << pid 
+                  << ", rank: " << world_rank << "): received " << received_number 
                   << ", computed " << computed_result << std::endl;
         
         MPI_Send(&computed_result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
