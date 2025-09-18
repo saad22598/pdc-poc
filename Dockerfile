@@ -22,7 +22,6 @@ WORKDIR /app
 
 COPY . /app/
 
-# Compile ALL the necessary tasks during the build
-RUN mpic++ -O2 -std=c++17 -o mpi_task task.cpp
-RUN mpic++ -O2 -std=c++17 -o task1 task1.cpp
-RUN mpic++ -O2 -std=c++17 -o task2 task2.cpp # <-- ADD THIS LINE
+# Compile ONLY task4 during the build to avoid unrelated compile failures
+RUN mpic++ -O2 -std=c++17 -o task4 task4.cpp
+RUN chmod +x /app/task4 || true
