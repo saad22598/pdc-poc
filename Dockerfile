@@ -23,5 +23,5 @@ WORKDIR /app
 COPY . /app/
 
 # Compile ONLY task4 during the build to avoid unrelated compile failures
-RUN mpic++ -O2 -std=c++17 -o task4 task4.cpp
+RUN mpic++ -O2 -std=c++17 -o task5 task5.cpp
 RUN chmod +x /app/task4 || true
