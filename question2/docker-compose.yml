@@ -1,0 +1,64 @@
+   services:
+     visualizer:
+       build:
+         context: .
+         dockerfile: Dockerfile.pygame
+       container_name: pdc-visualizer
+       volumes:
+         - ./needleman_wunsch_visualization.py:/app/needleman_wunsch_visualization.py
+       environment:
+         - DISPLAY=${DISPLAY}
+       networks:
+         - pdcn
+
+     master:
+       build: .
+       container_name: pdc-master
+       volumes:
+         - ./hostfile:/app/hostfile
+       environment:
+         - FRIENDLY_NAME=pdc-master
+       command: >
+         sh -c "/usr/sbin/sshd & sleep 5 && mpirun -np ${NUM_PROCESSES:-4} --hostfile /app/hostfile --allow-run-as-root /app/${TASK_TO_RUN:-edit_distance}"
+       networks:
+         - pdcn
+
+     worker1:
+       build: .
+       container_name: pdc-worker1
+       environment:
+         - FRIENDLY_NAME=pdc-worker1
+       command: /usr/sbin/sshd -D
+       networks:
+         - pdcn
+
+     worker2:
+       build: .
+       container_name: pdc-worker2
+       environment:
+         - FRIENDLY_NAME=pdc-worker2
+       command: /usr/sbin/sshd -D
+       networks:
+         - pdcn
+
+     worker3:
+       build: .
+       container_name: pdc-worker3
+       environment:
+         - FRIENDLY_NAME=pdc-worker3
+       command: /usr/sbin/sshd -D
+       networks:
+         - pdcn
+
+     worker4:
+       build: .
+       container_name: pdc-worker4
+       environment:
+         - FRIENDLY_NAME=pdc-worker4
+       command: /usr/sbin/sshd -D
+       networks:
+         - pdcn
+
+   networks:
+     pdcn:
+       driver: bridge
