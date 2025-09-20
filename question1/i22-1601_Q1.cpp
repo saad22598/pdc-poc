@@ -7,6 +7,10 @@
 #include <cstring>
 #include <iomanip>
 
+// Name: Syed Saad Mohsin
+// Roll Number: 221-1601
+// Assignment 1 for PDC
+
 using namespace std;
 
 int min3(int a, int b, int c) {

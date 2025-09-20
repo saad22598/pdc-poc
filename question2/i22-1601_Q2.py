@@ -3,6 +3,10 @@ import platform
 import pygame
 import numpy as np
 
+# Name: Syed Saad Mohsin
+# Roll Number: 221-1601
+# Assignment 1 for PDC
+
 # Constants for visualization
 WIDTH, HEIGHT = 800, 600
 CELL_SIZE = 40
