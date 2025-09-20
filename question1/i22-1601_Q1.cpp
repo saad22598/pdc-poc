@@ -7,227 +7,227 @@
 #include <cstring>
 #include <iomanip>
 
-// Name: Syed Saad Mohsin
-// Roll Number: 221-1601
-// Assignment 1 for PDC
+// Student: Syed Saad Mohsin
+// ID: 221-1601
+// PDC Assignment 1
 
 using namespace std;
 
-int min3(int a, int b, int c) {
-    return min(a, min(b, c));
+int find_minimum(int x, int y, int z) {
+    return min(x, min(y, z));
 }
 
-int compute_edit_distance(const string& seq1, const string& seq2) {
-    int m = seq1.length();
-    int n = seq2.length();
+int calculate_sequence_distance(const string& str1, const string& str2) {
+    int len1 = str1.length();
+    int len2 = str2.length();
     
-    vector<vector<int>> dp(m + 1, vector<int>(n + 1));
+    vector<vector<int>> distance_matrix(len1 + 1, vector<int>(len2 + 1));
     
-    // Initialize base cases
-    for (int i = 0; i <= m; i++) {
-        dp[i][0] = i;
+    // Set up initial conditions
+    for (int i = 0; i <= len1; i++) {
+        distance_matrix[i][0] = i;
     }
-    for (int j = 0; j <= n; j++) {
-        dp[0][j] = j;
+    for (int j = 0; j <= len2; j++) {
+        distance_matrix[0][j] = j;
     }
     
-    // Fill the DP table
-    for (int i = 1; i <= m; i++) {
-        for (int j = 1; j <= n; j++) {
-            if (seq1[i-1] == seq2[j-1]) {
-                dp[i][j] = dp[i-1][j-1];
+    // Build the distance matrix
+    for (int i = 1; i <= len1; i++) {
+        for (int j = 1; j <= len2; j++) {
+            if (str1[i-1] == str2[j-1]) {
+                distance_matrix[i][j] = distance_matrix[i-1][j-1];
             } else {
-                dp[i][j] = min3(
-                    dp[i-1][j] + 1,      // deletion
-                    dp[i][j-1] + 1,      // insertion
-                    dp[i-1][j-1] + 1     // substitution
+                distance_matrix[i][j] = find_minimum(
+                    distance_matrix[i-1][j] + 1,      // remove character
+                    distance_matrix[i][j-1] + 1,      // add character
+                    distance_matrix[i-1][j-1] + 1     // replace character
                 );
             }
         }
     }
     
-    return dp[m][n];
+    return distance_matrix[len1][len2];
 }
 
-int p2p_edit_distance(const string& seq1, const string& seq2, int rank, int size) {
-    double start_time, end_time;
+int point_to_point_distance(const string& str1, const string& str2, int process_id, int total_processes) {
+    double begin_time, finish_time;
     
-    if (rank == 0) {
-        start_time = MPI_Wtime();
+    if (process_id == 0) {
+        begin_time = MPI_Wtime();
     }
     
-    int result_p2p;
+    int local_result;
     
-    if (size == 1) {
-        result_p2p = compute_edit_distance(seq1, seq2);
+    if (total_processes == 1) {
+        local_result = calculate_sequence_distance(str1, str2);
     } else {
-        // Simplified P2P: Each process computes independently, then gather results
-        result_p2p = compute_edit_distance(seq1, seq2);
+        // Each process calculates independently, then collects results
+        local_result = calculate_sequence_distance(str1, str2);
         
-        // Gather results using point-to-point communication
-        if (rank == 0) {
-            vector<int> all_results(size);
-            all_results[0] = result_p2p;
+        // Collect results using point-to-point messaging
+        if (process_id == 0) {
+            vector<int> collected_results(total_processes);
+            collected_results[0] = local_result;
             
-            // Receive results from other processes
-            for (int proc = 1; proc < size; proc++) {
-                MPI_Recv(&all_results[proc], 1, MPI_INT, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            // Get results from other processes
+            for (int proc = 1; proc < total_processes; proc++) {
+                MPI_Recv(&collected_results[proc], 1, MPI_INT, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
             
-            result_p2p = all_results[0]; // Use first result
+            local_result = collected_results[0]; // Use primary result
         } else {
             // Send result to process 0
-            MPI_Send(&result_p2p, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+            MPI_Send(&local_result, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
         }
     }
     
-    if (rank == 0) {
-        end_time = MPI_Wtime();
-        cout << "Edit Distance (P2P) = " << result_p2p << ", Time = " << fixed << setprecision(6) << (end_time - start_time) << "s" << endl;
+    if (process_id == 0) {
+        finish_time = MPI_Wtime();
+        cout << "Sequence Distance (P2P) = " << local_result << ", Duration = " << fixed << setprecision(6) << (finish_time - begin_time) << "s" << endl;
     }
     
-    return result_p2p;
+    return local_result;
 }
 
-int scatter_gather_edit_distance(const string& seq1, const string& seq2, int rank, int size) {
-    double start_time, end_time;
+int scatter_collect_distance(const string& str1, const string& str2, int process_id, int total_processes) {
+    double begin_time, finish_time;
     
-    if (rank == 0) {
-        start_time = MPI_Wtime();
+    if (process_id == 0) {
+        begin_time = MPI_Wtime();
     }
     
-    int result_scatter;
+    int local_result;
     
-    if (size == 1) {
-        result_scatter = compute_edit_distance(seq1, seq2);
+    if (total_processes == 1) {
+        local_result = calculate_sequence_distance(str1, str2);
     } else {
-        // Each process computes the full matrix independently
-        result_scatter = compute_edit_distance(seq1, seq2);
+        // Each process calculates the complete matrix independently
+        local_result = calculate_sequence_distance(str1, str2);
         
-        // Gather results (though they should be the same)
-        vector<int> all_results(size);
-        MPI_Gather(&result_scatter, 1, MPI_INT, all_results.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+        // Collect results (should be identical)
+        vector<int> collected_results(total_processes);
+        MPI_Gather(&local_result, 1, MPI_INT, collected_results.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
         
-        if (rank == 0) {
-            result_scatter = all_results[0]; // Use first result
+        if (process_id == 0) {
+            local_result = collected_results[0]; // Use primary result
         }
     }
     
-    if (rank == 0) {
-        end_time = MPI_Wtime();
-        cout << "Edit Distance (Scatter) = " << result_scatter << ", Time = " << fixed << setprecision(6) << (end_time - start_time) << "s" << endl;
+    if (process_id == 0) {
+        finish_time = MPI_Wtime();
+        cout << "Sequence Distance (Scatter) = " << local_result << ", Duration = " << fixed << setprecision(6) << (finish_time - begin_time) << "s" << endl;
     }
     
-    return result_scatter;
+    return local_result;
 }
 
-void gather_multiple_pairs(const vector<pair<string,string>>& sequence_pairs, int rank, int size, vector<int>& results) {
-    double start_time, end_time;
+void collect_multiple_pairs(const vector<pair<string,string>>& pair_list, int process_id, int total_processes, vector<int>& final_results) {
+    double begin_time, finish_time;
     
-    if (rank == 0) {
-        start_time = MPI_Wtime();
+    if (process_id == 0) {
+        begin_time = MPI_Wtime();
     }
     
     // Distribute pairs among processes
-    int pairs_per_proc = max(1, (int)sequence_pairs.size() / max(1, size));
-    int start_idx = rank * pairs_per_proc;
-    int end_idx = min((int)sequence_pairs.size(), (rank + 1) * pairs_per_proc);
+    int pairs_per_process = max(1, (int)pair_list.size() / max(1, total_processes));
+    int start_index = process_id * pairs_per_process;
+    int end_index = min((int)pair_list.size(), (process_id + 1) * pairs_per_process);
     
-    vector<int> local_results;
+    vector<int> process_results;
     
-    // Compute assigned pairs
-    for (int i = start_idx; i < end_idx; i++) {
-        int dist = compute_edit_distance(sequence_pairs[i].first, sequence_pairs[i].second);
-        local_results.push_back(dist);
+    // Calculate assigned pairs
+    for (int i = start_index; i < end_index; i++) {
+        int distance = calculate_sequence_distance(pair_list[i].first, pair_list[i].second);
+        process_results.push_back(distance);
     }
     
-    // Gather results using MPI_Gatherv
+    // Collect results using MPI_Gatherv
     vector<int> all_results;
-    vector<int> all_sizes(size);
-    vector<int> all_displs(size);
+    vector<int> all_counts(total_processes);
+    vector<int> all_offsets(total_processes);
     
-    // First gather the sizes
-    int local_size = local_results.size();
-    MPI_Gather(&local_size, 1, MPI_INT, all_sizes.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    // First collect the counts
+    int local_count = process_results.size();
+    MPI_Gather(&local_count, 1, MPI_INT, all_counts.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
     
-    if (rank == 0) {
-        // Calculate displacements
-        int total_size = 0;
-        for (int i = 0; i < size; i++) {
-            all_displs[i] = total_size;
-            total_size += all_sizes[i];
+    if (process_id == 0) {
+        // Calculate offsets
+        int total_count = 0;
+        for (int i = 0; i < total_processes; i++) {
+            all_offsets[i] = total_count;
+            total_count += all_counts[i];
         }
-        all_results.resize(total_size);
+        all_results.resize(total_count);
     }
     
-    // Gather the actual data
-    MPI_Gatherv(local_results.data(), local_size, MPI_INT,
-                all_results.data(), all_sizes.data(), all_displs.data(), MPI_INT,
+    // Collect the actual data
+    MPI_Gatherv(process_results.data(), local_count, MPI_INT,
+                all_results.data(), all_counts.data(), all_offsets.data(), MPI_INT,
                 0, MPI_COMM_WORLD);
     
-    if (rank == 0) {
-        results = all_results;
-        end_time = MPI_Wtime();
-        cout << "Edit Distance (Gather) = [";
-        for (size_t i = 0; i < results.size(); i++) {
-            cout << results[i];
-            if (i < results.size() - 1) cout << ", ";
+    if (process_id == 0) {
+        final_results = all_results;
+        finish_time = MPI_Wtime();
+        cout << "Sequence Distance (Collect) = [";
+        for (size_t i = 0; i < final_results.size(); i++) {
+            cout << final_results[i];
+            if (i < final_results.size() - 1) cout << ", ";
         }
-        cout << "], Time = " << fixed << setprecision(6) << (end_time - start_time) << "s" << endl;
+        cout << "], Duration = " << fixed << setprecision(6) << (finish_time - begin_time) << "s" << endl;
     }
 }
 
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
-    int rank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    int process_id, total_processes;
+    MPI_Comm_rank(MPI_COMM_WORLD, &process_id);
+    MPI_Comm_size(MPI_COMM_WORLD, &total_processes);
     
-    string seq1, seq2;
+    string str1, str2;
     
     // Get input from command line arguments or use defaults
     if (argc >= 3) {
-        seq1 = argv[1];
-        seq2 = argv[2];
+        str1 = argv[1];
+        str2 = argv[2];
     } else if (argc == 2 && string(argv[1]) == "-i") {
         // Interactive input mode (only for single process)
-        if (rank == 0 && size == 1) {
+        if (process_id == 0 && total_processes == 1) {
             cout << "Enter Sequence 1: ";
-            getline(cin, seq1);
+            getline(cin, str1);
             cout << "Enter Sequence 2: ";
-            getline(cin, seq2);
+            getline(cin, str2);
         }
     } else {
         // Default sequences if no arguments provided
-        seq1 = "ACGTAG";
-        seq2 = "ACTG";
+        str1 = "ACGTAG";
+        str2 = "ACTG";
     }
     
-    vector<pair<string,string>> sequence_pairs = {
-        {seq1, seq2},
+    vector<pair<string,string>> pair_list = {
+        {str1, str2},
         {"CGTAG", "ATG"},
         {"AGTAG", "ACT"}
     };
     
     // Add longer sequences for better timing measurements
-    if (seq1.length() < 10) {
-        sequence_pairs.push_back({"ACGTAGCTAGCTAGCTAG", "ACTGCTAGCTAGCTAG"});
-        sequence_pairs.push_back({"HELLOWORLD", "WORLDHELLO"});
+    if (str1.length() < 10) {
+        pair_list.push_back({"ACGTAGCTAGCTAGCTAG", "ACTGCTAGCTAGCTAG"});
+        pair_list.push_back({"HELLOWORLD", "WORLDHELLO"});
     }
     
     // Display input sequences
-    if (rank == 0) {
-        cout << "Sequence 1: " << seq1 << endl;
-        cout << "Sequence 2: " << seq2 << endl;
+    if (process_id == 0) {
+        cout << "Sequence 1: " << str1 << endl;
+        cout << "Sequence 2: " << str2 << endl;
         cout << endl;
     }
     
-    // Run all three scenarios
-    p2p_edit_distance(seq1, seq2, rank, size);
-    scatter_gather_edit_distance(seq1, seq2, rank, size);
+    // Execute all three scenarios
+    point_to_point_distance(str1, str2, process_id, total_processes);
+    scatter_collect_distance(str1, str2, process_id, total_processes);
     
-    vector<int> gather_results;
-    gather_multiple_pairs(sequence_pairs, rank, size, gather_results);
+    vector<int> collect_results;
+    collect_multiple_pairs(pair_list, process_id, total_processes, collect_results);
     
     MPI_Finalize();
     return 0;
