@@ -1,0 +1,14 @@
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1-mesa-dri \
+    libglapi-mesa \
+    libx11-6 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install pygame numpy
+
+WORKDIR /app
+COPY needleman_wunsch_visualization.py /app/
+
+CMD ["python", "needleman_wunsch_visualization.py"]
